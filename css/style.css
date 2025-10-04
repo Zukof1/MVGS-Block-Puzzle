@@ -23,7 +23,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    overflow: hidden; /* Prevents scrolling on the body */
+    /* Removed overflow: hidden to fix the issue */
     -webkit-user-select: none;
     -ms-user-select: none;
     user-select: none;
@@ -317,18 +317,33 @@ body {
     height: 20px;
 }
 
+/* === REVISED MOBILE RESPONSIVE STYLES === */
 @media (max-width: 480px) {
 
-    body {
-        min-height: -webkit-fill-available;
-        min-height: 100vh;
-    }
-
     #game-container.active {
+        /* This new structure ensures all elements fit vertically */
         height: 100vh;
         height: -webkit-fill-available;
-        padding: 10px;
+        padding: 5px;
         justify-content: space-between;
+    }
+
+    .game-header {
+        /* Allow the header to shrink if needed */
+        flex-shrink: 0;
+    }
+
+    #game-board {
+        /* The board can shrink, but not grow too large */
+        flex-shrink: 1;
+        min-height: 0; /* Important for flexbox shrinking */
+    }
+
+    .game-footer {
+        /* The footer will not shrink, ensuring blocks are always visible */
+        flex-shrink: 0;
+        width: 100%;
+        padding-bottom: 5px;
     }
 
     .menu-screen h1 {
@@ -339,13 +354,6 @@ body {
         padding: 12px 20px;
         font-size: 1rem;
         min-width: 200px;
-    }
-
-    .game-header {
-        padding: 8px 10px;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 5px 10px;
     }
     
     .score-value, .level-value {
@@ -361,28 +369,15 @@ body {
         width: 100%;
         margin-top: 5px;
     }
-
-    .currency-container {
-        padding: 4px 8px;
-    }
-
-    .currency-container img {
-        width: 20px;
-        height: 20px;
-    }
-
+    
     .block-cell {
         width: 16px;
         height: 16px;
     }
 
-    .game-footer {
-        width: 100%;
-        padding-bottom: 10px;
-    }
-
     #power-ups-container {
         padding: 10px;
+        margin-bottom: 10px;
     }
 
     .power-up-button {
