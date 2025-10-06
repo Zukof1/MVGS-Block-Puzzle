@@ -34,12 +34,13 @@ body {
     display: none !important;
 }
 
-#main-menu {
+.menu-screen { /* Common style for main-menu and level-select-menu */
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 20px;
     padding: 20px;
+    width: 100%;
 }
 
 #main-menu h1 {
@@ -303,14 +304,14 @@ body {
     height: 20px;
 }
 
-/* === NEW & IMPROVED MOBILE RESPONSIVE STYLES === */
+/* === MOBILE RESPONSIVE STYLES === */
 @media (max-width: 480px) {
     body {
         overflow-y: auto; /* Allow vertical scrolling on small screens */
     }
     #game-container {
-        height: 100vh;
-        height: -webkit-fill-available;
+        height: 100%; /* Changed from 100vh to allow content to define height */
+        min-height: 100vh;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -380,18 +381,81 @@ body {
         font-size: 2rem;
     }
     
-    /* --- FINAL FOOTER SPACING FIX --- */
     #block-container {
-        min-height: auto; /* Remove minimum height on mobile */
+        min-height: auto;
         padding: 5px;
     }
 
     #power-ups-container {
-        padding: 8px; /* Make power-up section more compact */
+        padding: 8px;
         margin-bottom: 8px;
     }
 
     .next-blocks-label {
-        margin-bottom: 5px; /* Reduce space above next blocks */
+        margin-bottom: 5px;
     }
+}
+
+/* === LEVEL SELECT SCREEN STYLES === */
+.level-select-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 450px;
+    margin-bottom: 20px;
+}
+
+.level-select-header h1 {
+    font-size: 2.5rem;
+}
+
+.level-select-header .menu-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    min-width: auto;
+}
+
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 15px;
+    padding: 15px;
+    background-color: var(--grid-bg);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 450px;
+}
+
+.level-button {
+    background-color: #3a506b;
+    color: var(--button-text);
+    border: 2px solid #5a7b9c;
+    aspect-ratio: 1 / 1;
+    font-size: 1.5rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.level-button:hover:not(:disabled) {
+    transform: scale(1.05);
+    background-color: #4a658a;
+}
+
+.level-button.locked {
+    background-color: #2a3b4c;
+    color: #6a7b8c;
+    cursor: not-allowed;
+    border-color: #4a5b6c;
+}
+
+.level-button.locked .lock-icon {
+    width: 50%;
+    height: 50%;
+    opacity: 0.5;
 }

@@ -1,9 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Elements ---
     const mainMenu = document.getElementById('main-menu');
+    const levelSelectMenu = document.getElementById('level-select-menu');
     const gameContainer = document.getElementById('game-container');
     const levelsButton = document.getElementById('levels-button');
     const endlessButton = document.getElementById('endless-button');
+    const backToMainMenuButton = document.getElementById('back-to-main-menu');
+    const levelGrid = document.getElementById('level-grid');
     const board = document.getElementById('game-board');
     const scoreDisplay = document.getElementById('score');
     const levelDisplay = document.getElementById('level');
@@ -28,6 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let draggedElement = null;
     let gameMode = 'endless';
     let currentLevel = 1;
+    let maxUnlockedLevel = 1; // Player starts with level 1 unlocked
+    const TOTAL_LEVELS = 30; // Define how many levels your game has
     let levelBlockIndex = 0;
     let collectedStones = {};
     let lastTargetCell = null;
@@ -37,44 +42,55 @@ document.addEventListener('DOMContentLoaded', () => {
     const generatedLevels = {};
 
     // --- Game Constants ---
-    const STONES = [
-        { id: 0, name: 'Ruby', icon: 'assets/gemstone_ruby.png' },
-        { id: 1, name: 'Sapphire', icon: 'assets/gemstone_sapphire.png' },
-        { id: 2, name: 'Emerald', icon: 'assets/gemstone_emerald.png' },
-        { id: 3, name: 'Amethyst', icon: 'assets/gemstone_amethyst.png' },
-        { id: 4, name: 'Diamond', icon: 'assets/gemstone_diamond.png' },
-        { id: 5, name: 'Stone', icon: 'assets/gemstone_stone.png' },
-    ];
+    const STONES = [ { id: 0, name: 'Ruby', icon: 'assets/gemstone_ruby.png' }, { id: 1, name: 'Sapphire', icon: 'assets/gemstone_sapphire.png' }, { id: 2, name: 'Emerald', icon: 'assets/gemstone_emerald.png' }, { id: 3, name: 'Amethyst', icon: 'assets/gemstone_amethyst.png' }, { id: 4, name: 'Diamond', icon: 'assets/gemstone_diamond.png' }, { id: 5, name: 'Stone', icon: 'assets/gemstone_stone.png' }, ];
+    const SHAPES = [ { shape: [[1, 1, 1, 1]], color: 'cyan', id: 0 }, { shape: [[1, 1], [1, 1]], color: 'yellow', id: 1 }, { shape: [[0, 1, 0], [1, 1, 1]], color: 'purple', id: 2 }, { shape: [[0, 0, 1], [1, 1, 1]], color: 'blue', id: 3 }, { shape: [[1, 0, 0], [1, 1, 1]], color: 'orange', id: 4 }, { shape: [[0, 1, 1], [1, 1, 0]], color: 'green', id: 5 }, { shape: [[1, 1, 0], [0, 1, 1]], color: 'red', id: 6 }, { shape: [[1]], color: 'pink', id: 7 }, { shape: [[1, 1]], color: 'lightblue', id: 8 }, { shape: [[1], [1]], color: 'lightgreen', id: 9 }, ];
+    const POWERUP_COSTS = { swap: 50, bomb: 100 };
 
-    const SHAPES = [
-        { shape: [[1, 1, 1, 1]], color: 'cyan', id: 0 },
-        { shape: [[1, 1], [1, 1]], color: 'yellow', id: 1 },
-        { shape: [[0, 1, 0], [1, 1, 1]], color: 'purple', id: 2 },
-        { shape: [[0, 0, 1], [1, 1, 1]], color: 'blue', id: 3 },
-        { shape: [[1, 0, 0], [1, 1, 1]], color: 'orange', id: 4 },
-        { shape: [[0, 1, 1], [1, 1, 0]], color: 'green', id: 5 },
-        { shape: [[1, 1, 0], [0, 1, 1]], color: 'red', id: 6 },
-        { shape: [[1]], color: 'pink', id: 7 },
-        { shape: [[1, 1]], color: 'lightblue', id: 8 },
-        { shape: [[1], [1]], color: 'lightgreen', id: 9 },
-    ];
-    
-    const POWERUP_COSTS = {
-        swap: 50,
-        bomb: 100,
-    };
+    // --- Progress Saving & Loading ---
+    function saveProgress() {
+        localStorage.setItem('blockPuzzleMaxLevel', maxUnlockedLevel);
+    }
+
+    function loadProgress() {
+        const savedLevel = localStorage.getItem('blockPuzzleMaxLevel');
+        if (savedLevel) {
+            maxUnlockedLevel = parseInt(savedLevel, 10);
+        }
+        loadCurrency();
+        renderLevelSelect();
+    }
+
+    // --- Level Select Screen Rendering ---
+    function renderLevelSelect() {
+        levelGrid.innerHTML = '';
+        for (let i = 1; i <= TOTAL_LEVELS; i++) {
+            const button = document.createElement('button');
+            button.classList.add('level-button');
+
+            if (i <= maxUnlockedLevel) {
+                button.textContent = i;
+                button.addEventListener('click', () => {
+                    gameMode = 'levels';
+                    init(i);
+                });
+            } else {
+                button.classList.add('locked');
+                button.innerHTML = `<svg class="lock-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"></path></svg>`;
+                button.disabled = true;
+            }
+            levelGrid.appendChild(button);
+        }
+    }
+
 
     function generateLevel(levelNumber) {
         const level = {};
-        
         level.level = levelNumber;
         level.gridSize = Math.min(10, 5 + Math.floor(levelNumber / 4));
         level.scoreGoal = 50 + (levelNumber * 15);
         level.currencyReward = 75 + (levelNumber * 5);
-        
         level.stoneGoal = {};
         const numberOfGoalTypes = (levelNumber > 10) ? 2 : 1;
-        
         for(let i = 0; i < numberOfGoalTypes; i++) {
             const randomStoneId = Math.floor(Math.random() * 5);
             if(!level.stoneGoal[randomStoneId]) {
@@ -82,36 +98,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 level.stoneGoal[randomStoneId] = amount;
             }
         }
-
         level.startGrid = Array(level.gridSize).fill(null).map(() => Array(level.gridSize).fill(null));
         const requiredStones = { ...level.stoneGoal };
         const stoneIdsToPlace = Object.keys(requiredStones);
-
         stoneIdsToPlace.forEach(stoneId => {
             let amountToPlace = requiredStones[stoneId];
             let attempts = 0;
             while(amountToPlace > 0 && attempts < 100) {
                 const r = Math.floor(Math.random() * level.gridSize);
                 const c = Math.floor(Math.random() * level.gridSize);
-
                 if (!level.startGrid[r][c]) {
-                    level.startGrid[r][c] = {
-                        color: '#4a4e69',
-                        stone: { id: parseInt(stoneId) },
-                        locked: true
-                    };
+                    level.startGrid[r][c] = { color: '#4a4e69', stone: { id: parseInt(stoneId) }, locked: true };
                     amountToPlace--;
                 }
                 attempts++;
             }
         });
-
         level.blocks = [];
         for (let i = 0; i < 30; i++) {
             const shapeId = Math.floor(Math.random() * SHAPES.length);
             level.blocks.push({ shapeId, stones: [] });
         }
-
         return level;
     }
     
@@ -171,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function useBomb(row, col) {
         if (!isBombActive) return;
-
         let bombScore = 0;
         for (let r = row - 1; r <= row + 1; r++) {
             for (let c = col - 1; c <= col + 1; c++) {
@@ -189,30 +195,27 @@ document.addEventListener('DOMContentLoaded', () => {
         drawBoard();
         renderStoneGoals();
         checkLevelComplete();
-
         isBombActive = false;
         board.style.cursor = 'default';
     }
 
     function init(levelNum = 1) {
         mainMenu.classList.add('hidden');
+        levelSelectMenu.classList.add('hidden');
         gameContainer.classList.remove('hidden');
         
         score = 0;
         updateScore();
-        loadCurrency();
         updatePowerupButtons();
         isBombActive = false;
         board.style.cursor = 'default';
 
         if (gameMode === 'levels') {
             currentLevelConfig = generatedLevels[levelNum];
-            
             if (!currentLevelConfig) {
                 currentLevelConfig = generateLevel(levelNum);
                 generatedLevels[levelNum] = currentLevelConfig;
             }
-
             currentLevel = levelNum;
             GRID_SIZE = currentLevelConfig.gridSize;
             grid = JSON.parse(JSON.stringify(currentLevelConfig.startGrid));
@@ -237,7 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderStoneGoals();
         generateNewBlocks();
         renderBlocks();
-
         gameOverModal.classList.add('hidden');
         levelCompleteModal.classList.add('hidden');
     }
@@ -260,11 +262,9 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let c = 0; c < GRID_SIZE; c++) {
                 const cell = board.querySelector(`[data-row='${r}'][data-col='${c}']`);
                 const cellData = grid[r][c];
-                
                 cell.style.backgroundColor = '';
                 cell.style.backgroundImage = '';
                 cell.classList.remove('cell-with-background', 'locked-cell');
-
                 if (cellData) {
                     const color = cellData.color;
                     if (cellData.stone) {
@@ -295,7 +295,6 @@ document.addEventListener('DOMContentLoaded', () => {
             blockEl.style.gridTemplateColumns = `repeat(${block.shape[0].length}, 1fr)`;
             blockEl.style.width = `${block.shape[0].length * 18}px`;
             blockEl.style.height = `${block.shape.length * 18}px`;
-            
             block.shape.forEach((row, r) => {
                 row.forEach((cellValue, c) => {
                     const cellEl = document.createElement('div');
@@ -355,11 +354,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function generateNewBlocks() {
         currentBlocks = [];
         let generatedFromSequence = false;
-        
         if (gameMode === 'levels' && currentLevelConfig && currentLevelConfig.blocks && levelBlockIndex < currentLevelConfig.blocks.length) {
             const blockSequence = currentLevelConfig.blocks;
             const blocksToGenerate = blockSequence.slice(levelBlockIndex, levelBlockIndex + 3);
-            
             if (blocksToGenerate.length > 0) {
                 blocksToGenerate.forEach((blockInfo, index) => {
                     const shape = SHAPES.find(s => s.id === blockInfo.shapeId);
@@ -371,7 +368,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 generatedFromSequence = true;
             }
         }
-        
         if (!generatedFromSequence) {
             for (let i = 0; i < 3; i++) {
                 const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
@@ -401,10 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row.forEach((cell, c) => {
                 if (cell) {
                     const stone = block.stones.find(s => s.r === r && s.c === c);
-                    grid[startRow + r][startCol + c] = {
-                        color: block.color,
-                        stone: stone ? { id: stone.stoneId } : null
-                    };
+                    grid[startRow + r][startCol + c] = { color: block.color, stone: stone ? { id: stone.stoneId } : null };
                     blockScore++;
                 }
             });
@@ -417,13 +410,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkForLineClears() {
         let rowsToClear = [];
         let colsToClear = [];
-
         for (let r = 0; r < GRID_SIZE; r++) {
             if (grid[r].every(cell => cell !== null)) {
                 rowsToClear.push(r);
             }
         }
-
         for (let c = 0; c < GRID_SIZE; c++) {
             let fullCol = true;
             for (let r = 0; r < GRID_SIZE; r++) {
@@ -436,12 +427,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 colsToClear.push(c);
             }
         }
-
         const linesCleared = rowsToClear.length + colsToClear.length;
-
         if (linesCleared > 0) {
             score += 100 * linesCleared * linesCleared;
-
             rowsToClear.forEach(r => {
                 for (let c = 0; c < GRID_SIZE; c++) {
                     if (grid[r][c]?.stone && collectedStones[grid[r][c].stone.id] !== undefined) {
@@ -449,7 +437,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
-
             colsToClear.forEach(c => {
                 for (let r = 0; r < GRID_SIZE; r++) {
                     if (!rowsToClear.includes(r) && grid[r][c]?.stone && collectedStones[grid[r][c].stone.id] !== undefined) {
@@ -457,14 +444,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
-
             rowsToClear.forEach(r => {
                 for (let c = 0; c < GRID_SIZE; c++) grid[r][c] = null;
             });
             colsToClear.forEach(c => {
                 for (let r = 0; r < GRID_SIZE; r++) grid[r][c] = null;
             });
-
             updateScore();
             drawBoard();
             renderStoneGoals();
@@ -488,10 +473,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function checkLevelComplete() {
         if (gameMode !== 'levels' || !currentLevelConfig) return;
-        
         const scoreGoalMet = score >= currentLevelConfig.scoreGoal;
         let stoneGoalsMet = true;
-        
         if (currentLevelConfig.stoneGoal) {
             for (const stoneId in currentLevelConfig.stoneGoal) {
                 if (collectedStones[stoneId] < currentLevelConfig.stoneGoal[stoneId]) {
@@ -502,6 +485,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (scoreGoalMet && stoneGoalsMet) {
+            const nextLevel = currentLevel + 1;
+            if (nextLevel > maxUnlockedLevel) {
+                maxUnlockedLevel = nextLevel;
+                saveProgress();
+                renderLevelSelect();
+            }
             addCurrency(currentLevelConfig.currencyReward || 50);
             levelCompleteModal.classList.remove('hidden');
         }
@@ -513,7 +502,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderStoneGoals() {
         stoneGoalsContainer.innerHTML = '';
         if (gameMode !== 'levels' || !currentLevelConfig || !currentLevelConfig.stoneGoal) return;
-        
         for (const stoneId in currentLevelConfig.stoneGoal) {
             const goal = currentLevelConfig.stoneGoal[stoneId];
             const current = collectedStones[stoneId];
@@ -536,47 +524,36 @@ document.addEventListener('DOMContentLoaded', () => {
         if (draggedElement) draggedElement.style.display = 'none';
         const elementUnder = document.elementFromPoint(x, y);
         if (draggedElement) draggedElement.style.display = '';
-        
         return elementUnder ? elementUnder.closest('.grid-cell') : null;
     }
 
     function handleDragStart(e) {
         const blockElement = e.target.closest('[data-block-id]');
         if (!blockElement || isBombActive) return;
-
         draggedBlockData = currentBlocks.find(b => b.instanceId === blockElement.dataset.blockId);
         if (!draggedBlockData) return;
-
         draggedElement = blockElement.cloneNode(true);
         draggedElement.style.position = 'absolute';
         draggedElement.style.zIndex = '1000';
         draggedElement.style.pointerEvents = 'none';
         document.body.appendChild(draggedElement);
-
         const isTouchEvent = e.type === 'touchstart';
         if (isTouchEvent) e.preventDefault();
         const touch = isTouchEvent ? e.touches[0] : null;
         const clientX = isTouchEvent ? touch.clientX : e.clientX;
         const clientY = isTouchEvent ? touch.clientY : e.clientY;
-        
         positionDraggedElement(clientX, clientY);
-        
         blockElement.style.opacity = '0.4';
     }
 
     function handleDragMove(e) {
         if (!draggedBlockData) return;
-        
         const isTouchEvent = e.type === 'touchmove';
         if (isTouchEvent) e.preventDefault();
-
         const clientX = isTouchEvent ? e.touches[0].clientX : e.clientX;
         const clientY = isTouchEvent ? e.touches[0].clientY : e.clientY;
-        
         positionDraggedElement(clientX, clientY);
-        
         const targetCell = getCellFromCoordinates(clientX, clientY);
-        
         if (targetCell && targetCell !== lastTargetCell) {
             lastTargetCell = targetCell;
             const row = parseInt(targetCell.dataset.row);
@@ -590,50 +567,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleDragEnd(e) {
         if (!draggedBlockData) return;
-
         const isTouchEvent = e.type === 'touchend';
         if (isTouchEvent) e.preventDefault();
-
         let dropSuccessful = false;
-        
         if (lastTargetCell) {
             const row = parseInt(lastTargetCell.dataset.row);
             const col = parseInt(lastTargetCell.dataset.col);
             if (isValidPlacement(draggedBlockData, row, col)) {
                 placeBlock(draggedBlockData, row, col);
-                
                 currentBlocks = currentBlocks.filter(b => b.instanceId !== draggedBlockData.instanceId);
                 const originalBlockEl = blockContainer.querySelector(`[data-block-id="${draggedBlockData.instanceId}"]`);
                 if (originalBlockEl) originalBlockEl.remove();
-
                 checkForLineClears();
-
                 if (currentBlocks.length === 0) {
                     generateNewBlocks();
                     renderBlocks();
                 }
-
                 if (isGameOver()) {
                     showGameOver();
                 }
                 dropSuccessful = true;
             }
         }
-        
         clearPreview();
         lastTargetCell = null;
         if (draggedElement) {
             draggedElement.remove();
             draggedElement = null;
         }
-
         if (!dropSuccessful) {
             const originalBlock = blockContainer.querySelector(`[data-block-id="${draggedBlockData.instanceId}"]`);
             if (originalBlock) {
                 originalBlock.style.opacity = '1';
             }
         }
-        
         draggedBlockData = null;
     }
     
@@ -646,13 +613,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Listeners ---
     levelsButton.addEventListener('click', () => {
-        gameMode = 'levels';
-        init(1);
+        mainMenu.classList.add('hidden');
+        levelSelectMenu.classList.remove('hidden');
     });
 
     endlessButton.addEventListener('click', () => {
         gameMode = 'endless';
         init();
+    });
+
+    backToMainMenuButton.addEventListener('click', () => {
+        levelSelectMenu.classList.add('hidden');
+        mainMenu.classList.remove('hidden');
     });
 
     restartButton.addEventListener('click', () => init(currentLevel));
@@ -685,4 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    // --- Initial Load ---
+    loadProgress();
 });

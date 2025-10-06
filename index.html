@@ -10,10 +10,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="main-menu" class="menu-screen active">
+    <div id="main-menu" class="menu-screen">
         <h1>Block Puzzle</h1>
         <button id="levels-button" class="menu-button">Levels Mode</button>
         <button id="endless-button" class="menu-button">Endless Mode</button>
+    </div>
+
+    <div id="level-select-menu" class="menu-screen hidden">
+        <div class="level-select-header">
+            <h1>Select Level</h1>
+            <button id="back-to-main-menu" class="menu-button">Back</button>
+        </div>
+        <div id="level-grid" class="level-grid">
+            </div>
     </div>
 
     <div id="game-container" class="hidden">
@@ -33,7 +42,7 @@
                 <div id="level" class="level-value">1</div>
             </div>
             <button id="restart-button" class="game-button">
-                <svg xmlns="http://www.w.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
             </button>
         </div>
         
