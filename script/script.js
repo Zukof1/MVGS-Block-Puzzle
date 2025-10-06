@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentLevelConfig = null;
     const generatedLevels = {};
 
+    // --- Game Constants ---
     const STONES = [
         { id: 0, name: 'Ruby', icon: 'assets/gemstone_ruby.png' },
         { id: 1, name: 'Sapphire', icon: 'assets/gemstone_sapphire.png' },
@@ -45,8 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 5, name: 'Stone', icon: 'assets/gemstone_stone.png' },
     ];
 
-    const levelData = [];
-    
     const SHAPES = [
         { shape: [[1, 1, 1, 1]], color: 'cyan', id: 0 },
         { shape: [[1, 1], [1, 1]], color: 'yellow', id: 1 },
@@ -59,6 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
         { shape: [[1, 1]], color: 'lightblue', id: 8 },
         { shape: [[1], [1]], color: 'lightgreen', id: 9 },
     ];
+    
+    const POWERUP_COSTS = {
+        swap: 50,
+        bomb: 100,
+    };
 
     function generateLevel(levelNumber) {
         const level = {};
@@ -72,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const numberOfGoalTypes = (levelNumber > 10) ? 2 : 1;
         
         for(let i = 0; i < numberOfGoalTypes; i++) {
-            const randomStoneId = Math.floor(Math.random() * 5); 
+            const randomStoneId = Math.floor(Math.random() * 5);
             if(!level.stoneGoal[randomStoneId]) {
                 const amount = 2 + Math.floor(levelNumber / 2);
                 level.stoneGoal[randomStoneId] = amount;
@@ -111,11 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return level;
     }
     
-    const POWERUP_COSTS = {
-        swap: 50,
-        bomb: 100,
-    };
-
     function loadCurrency() { 
         const savedCurrency = localStorage.getItem('blockPuzzleCurrency');
         currency = savedCurrency ? parseInt(savedCurrency, 10) : 0;
@@ -195,13 +194,9 @@ document.addEventListener('DOMContentLoaded', () => {
         board.style.cursor = 'default';
     }
 
-    // --- UPDATED: init function to fix screen switching ---
     function init(levelNum = 1) {
-        // This is the crucial fix for switching screens
-        mainMenu.classList.remove('active');
         mainMenu.classList.add('hidden');
         gameContainer.classList.remove('hidden');
-        gameContainer.classList.add('active');
         
         score = 0;
         updateScore();
@@ -247,6 +242,19 @@ document.addEventListener('DOMContentLoaded', () => {
         levelCompleteModal.classList.add('hidden');
     }
     
+    function createBoard() {
+        board.innerHTML = '';
+        board.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 1fr)`;
+        board.style.gridTemplateRows = `repeat(${GRID_SIZE}, 1fr)`;
+        for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('grid-cell');
+            cell.dataset.row = Math.floor(i / GRID_SIZE);
+            cell.dataset.col = i % GRID_SIZE;
+            board.appendChild(cell);
+        }
+    }
+
     function drawBoard() {
         for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
@@ -323,17 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (gridRow < GRID_SIZE && gridCol < GRID_SIZE && gridRow >= 0 && gridCol >= 0) {
                         const cell = board.querySelector(`[data-row='${gridRow}'][data-col='${gridCol}']`);
                         if (cell && !grid[gridRow][gridCol]) {
-                            const stone = block.stones.find(s => s.r === r && s.c === c);
-                            if (stone) {
-                                const stoneInfo = STONES.find(s => s.id === stone.stoneId);
-                                if (stoneInfo) {
-                                    cell.style.backgroundColor = block.color;
-                                    cell.style.backgroundImage = `url('${stoneInfo.icon}')`;
-                                    cell.classList.add('cell-with-background');
-                                }
-                            } else {
-                                cell.style.backgroundColor = isValid ? block.color : 'darkred';
-                            }
+                            cell.style.backgroundColor = isValid ? block.color : 'darkred';
                             cell.style.opacity = '0.6';
                         }
                     }
@@ -343,42 +341,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearPreview() {
-        const cells = board.querySelectorAll('.grid-cell:not(.locked-cell)');
-        cells.forEach(cell => {
-            if (!grid[cell.dataset.row][cell.dataset.col]) {
-                cell.style.opacity = '1';
-                cell.style.backgroundColor = '';
-                cell.style.backgroundImage = '';
-                cell.classList.remove('cell-with-background');
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (!grid[r][c]) {
+                    const cell = board.querySelector(`[data-row='${r}'][data-col='${c}']`);
+                    cell.style.backgroundColor = '';
+                    cell.style.opacity = '1';
+                }
             }
-        });
-    }
-
-    function getCellFromCoordinates(x, y) {
-        if (draggedElement) draggedElement.style.display = 'none';
-        const elementUnder = document.elementFromPoint(x, y);
-        if (draggedElement) draggedElement.style.display = '';
-        return elementUnder ? elementUnder.closest('.grid-cell') : null;
+        }
     }
 
     function generateNewBlocks() {
         currentBlocks = [];
         let generatedFromSequence = false;
-        if (gameMode === 'levels') {
-            if (currentLevelConfig && currentLevelConfig.blocks && levelBlockIndex < currentLevelConfig.blocks.length) {
-                const blockSequence = currentLevelConfig.blocks;
-                const blocksToGenerate = blockSequence.slice(levelBlockIndex, levelBlockIndex + 3);
-                
-                if(blocksToGenerate.length > 0) {
-                    blocksToGenerate.forEach((blockInfo, index) => {
-                        const shape = SHAPES.find(s => s.id === blockInfo.shapeId);
-                        if (shape) {
-                            currentBlocks.push({ ...shape, stones: blockInfo.stones || [], instanceId: `block-${Date.now()}-${index}` });
-                        }
-                    });
-                    levelBlockIndex += blocksToGenerate.length;
-                    generatedFromSequence = true;
-                }
+        
+        if (gameMode === 'levels' && currentLevelConfig && currentLevelConfig.blocks && levelBlockIndex < currentLevelConfig.blocks.length) {
+            const blockSequence = currentLevelConfig.blocks;
+            const blocksToGenerate = blockSequence.slice(levelBlockIndex, levelBlockIndex + 3);
+            
+            if (blocksToGenerate.length > 0) {
+                blocksToGenerate.forEach((blockInfo, index) => {
+                    const shape = SHAPES.find(s => s.id === blockInfo.shapeId);
+                    if (shape) {
+                        currentBlocks.push({ ...shape, stones: blockInfo.stones || [], instanceId: `block-${Date.now()}-${index}` });
+                    }
+                });
+                levelBlockIndex += blocksToGenerate.length;
+                generatedFromSequence = true;
             }
         }
         
@@ -390,55 +380,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function handleDragEnd(e) {
-        if (!draggedBlockData) return;
-        e.preventDefault();
-        const isTouchEvent = e.type === 'touchend';
-        const touch = isTouchEvent ? e.changedTouches[0] : null;
-        const clientX = isTouchEvent ? touch.clientX : e.clientX;
-        const clientY = isTouchEvent ? touch.clientY : e.clientY;
-        const targetCell = lastTargetCell || getCellFromCoordinates(clientX, clientY);
-        let dropSuccessful = false;
-        if (targetCell) {
-            const row = parseInt(targetCell.dataset.row);
-            const col = parseInt(targetCell.dataset.col);
-            if (isValidPlacement(draggedBlockData, row, col)) {
-                placeBlock(draggedBlockData, row, col);
-                const originalBlockEl = blockContainer.querySelector(`[data-block-id="${draggedBlockData.instanceId}"]`);
-                if (originalBlockEl) originalBlockEl.remove();
-                currentBlocks = currentBlocks.filter(b => b.instanceId !== draggedBlockData.instanceId);
-                checkForLineClears();
-                if (currentBlocks.length === 0) {
-                    generateNewBlocks();
-                    renderBlocks();
-                }
-                if (isGameOver()) {
-                    showGameOver();
-                }
-                dropSuccessful = true;
-            }
-        }
-        clearPreview();
-        lastTargetCell = null;
-        if (draggedElement) {
-            draggedElement.remove();
-            draggedElement = null;
-        }
-        if (!dropSuccessful) {
-            const originalBlock = blockContainer.querySelector(`[data-block-id="${draggedBlockData.instanceId}"]`);
-            if (originalBlock) {
-                originalBlock.style.opacity = '1';
-            }
-        }
-        draggedBlockData = null;
-    }
-
-    function isGameOver() {
-        if (currentBlocks.length === 0) return false;
-        for (const block of currentBlocks) {
-            for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE; c++) {
-                    if (isValidPlacement(block, r, c)) {
+    function isValidPlacement(block, startRow, startCol) {
+        for (let r = 0; r < block.shape.length; r++) {
+            for (let c = 0; c < block.shape[r].length; c++) {
+                if (block.shape[r][c]) {
+                    const gridRow = startRow + r;
+                    const gridCol = startCol + c;
+                    if (gridRow >= GRID_SIZE || gridCol >= GRID_SIZE || gridRow < 0 || gridCol < 0 || grid[gridRow][gridCol]) {
                         return false;
                     }
                 }
@@ -446,45 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return true;
     }
-
-    function checkLevelComplete(silentCheck = false) {
-        if (gameMode !== 'levels' || !currentLevelConfig) return false;
-        
-        const scoreGoalMet = score >= currentLevelConfig.scoreGoal;
-        let stoneGoalsMet = true;
-        
-        if (currentLevelConfig.stoneGoal) {
-            for (const stoneId in currentLevelConfig.stoneGoal) {
-                if (collectedStones[stoneId] < currentLevelConfig.stoneGoal[stoneId]) {
-                    stoneGoalsMet = false;
-                    break;
-                }
-            }
-        }
-        
-        const isComplete = scoreGoalMet && stoneGoalsMet;
-        if (isComplete && !silentCheck) {
-            addCurrency(currentLevelConfig.currencyReward || 50);
-            levelCompleteModal.classList.remove('hidden');
-        }
-        return isComplete;
-    }
-
-    function renderStoneGoals() {
-        stoneGoalsContainer.innerHTML = '';
-        if (gameMode !== 'levels' || !currentLevelConfig || !currentLevelConfig.stoneGoal) return;
-        
-        for (const stoneId in currentLevelConfig.stoneGoal) {
-            const goal = currentLevelConfig.stoneGoal[stoneId];
-            const current = collectedStones[stoneId];
-            const stoneInfo = STONES.find(s => s.id == stoneId);
-            const goalEl = document.createElement('div');
-            goalEl.classList.add('stone-goal');
-            goalEl.innerHTML = ` <img src="${stoneInfo.icon}" class="stone-goal-icon-img" alt="${stoneInfo.name}"> <span>${current} / ${goal}</span> `;
-            stoneGoalsContainer.appendChild(goalEl);
-        }
-    }
-
+    
     function placeBlock(block, startRow, startCol) {
         let blockScore = 0;
         block.shape.forEach((row, r) => {
@@ -505,7 +415,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function checkForLineClears() {
-        let linesCleared = 0;
         let rowsToClear = [];
         let colsToClear = [];
 
@@ -524,33 +433,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             if (fullCol) {
-                if (!colsToClear.includes(c)) colsToClear.push(c);
+                colsToClear.push(c);
             }
         }
 
-        linesCleared = rowsToClear.length + colsToClear.length;
+        const linesCleared = rowsToClear.length + colsToClear.length;
 
         if (linesCleared > 0) {
             score += 100 * linesCleared * linesCleared;
 
             rowsToClear.forEach(r => {
                 for (let c = 0; c < GRID_SIZE; c++) {
-                    if (grid[r][c] && grid[r][c].stone) {
-                        const stoneId = grid[r][c].stone.id;
-                        if (collectedStones[stoneId] !== undefined) {
-                            collectedStones[stoneId]++;
-                        }
+                    if (grid[r][c]?.stone && collectedStones[grid[r][c].stone.id] !== undefined) {
+                        collectedStones[grid[r][c].stone.id]++;
                     }
                 }
             });
 
             colsToClear.forEach(c => {
                 for (let r = 0; r < GRID_SIZE; r++) {
-                    if (!rowsToClear.includes(r) && grid[r][c] && grid[r][c].stone) {
-                        const stoneId = grid[r][c].stone.id;
-                        if (collectedStones[stoneId] !== undefined) {
-                            collectedStones[stoneId]++;
-                        }
+                    if (!rowsToClear.includes(r) && grid[r][c]?.stone && collectedStones[grid[r][c].stone.id] !== undefined) {
+                        collectedStones[grid[r][c].stone.id]++;
                     }
                 }
             });
@@ -568,35 +471,13 @@ document.addEventListener('DOMContentLoaded', () => {
             checkLevelComplete();
         }
     }
-
-    function createBoard() {
-        board.innerHTML = '';
-        board.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 1fr)`;
-        board.style.gridTemplateRows = `repeat(${GRID_SIZE}, 1fr)`;
-        for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
-            const cell = document.createElement('div');
-            cell.classList.add('grid-cell');
-            cell.dataset.row = Math.floor(i / GRID_SIZE);
-            cell.dataset.col = i % GRID_SIZE;
-            board.appendChild(cell);
-        }
-    }
-
-    function updateScore() {
-        scoreDisplay.textContent = score;
-    }
-
-    function updateLevel() {
-        levelDisplay.textContent = currentLevel;
-    }
     
-    function isValidPlacement(block, startRow, startCol) {
-        for (let r = 0; r < block.shape.length; r++) {
-            for (let c = 0; c < block.shape[r].length; c++) {
-                if (block.shape[r][c]) {
-                    const gridRow = startRow + r;
-                    const gridCol = startCol + c;
-                    if (gridRow >= GRID_SIZE || gridCol >= GRID_SIZE || gridRow < 0 || gridCol < 0 || grid[gridRow][gridCol]) {
+    function isGameOver() {
+        if (currentBlocks.length === 0) return false;
+        for (const block of currentBlocks) {
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (isValidPlacement(block, r, c)) {
                         return false;
                     }
                 }
@@ -605,9 +486,58 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
+    function checkLevelComplete() {
+        if (gameMode !== 'levels' || !currentLevelConfig) return;
+        
+        const scoreGoalMet = score >= currentLevelConfig.scoreGoal;
+        let stoneGoalsMet = true;
+        
+        if (currentLevelConfig.stoneGoal) {
+            for (const stoneId in currentLevelConfig.stoneGoal) {
+                if (collectedStones[stoneId] < currentLevelConfig.stoneGoal[stoneId]) {
+                    stoneGoalsMet = false;
+                    break;
+                }
+            }
+        }
+        
+        if (scoreGoalMet && stoneGoalsMet) {
+            addCurrency(currentLevelConfig.currencyReward || 50);
+            levelCompleteModal.classList.remove('hidden');
+        }
+    }
+
+    function updateScore() { scoreDisplay.textContent = score; }
+    function updateLevel() { levelDisplay.textContent = currentLevel; }
+
+    function renderStoneGoals() {
+        stoneGoalsContainer.innerHTML = '';
+        if (gameMode !== 'levels' || !currentLevelConfig || !currentLevelConfig.stoneGoal) return;
+        
+        for (const stoneId in currentLevelConfig.stoneGoal) {
+            const goal = currentLevelConfig.stoneGoal[stoneId];
+            const current = collectedStones[stoneId];
+            const stoneInfo = STONES.find(s => s.id == stoneId);
+            if (stoneInfo) {
+                const goalEl = document.createElement('div');
+                goalEl.classList.add('stone-goal');
+                goalEl.innerHTML = `<img src="${stoneInfo.icon}" class="stone-goal-icon-img" alt="${stoneInfo.name}"> <span>${current} / ${goal}</span>`;
+                stoneGoalsContainer.appendChild(goalEl);
+            }
+        }
+    }
+
     function showGameOver() {
         finalScoreDisplay.textContent = score;
         gameOverModal.classList.remove('hidden');
+    }
+
+    function getCellFromCoordinates(x, y) {
+        if (draggedElement) draggedElement.style.display = 'none';
+        const elementUnder = document.elementFromPoint(x, y);
+        if (draggedElement) draggedElement.style.display = '';
+        
+        return elementUnder ? elementUnder.closest('.grid-cell') : null;
     }
 
     function handleDragStart(e) {
@@ -617,30 +547,36 @@ document.addEventListener('DOMContentLoaded', () => {
         draggedBlockData = currentBlocks.find(b => b.instanceId === blockElement.dataset.blockId);
         if (!draggedBlockData) return;
 
-        if (e.type === 'touchstart') {
-            e.preventDefault();
-            draggedElement = blockElement.cloneNode(true);
-            draggedElement.style.position = 'absolute';
-            draggedElement.style.zIndex = '1000';
-            draggedElement.style.pointerEvents = 'none';
-            document.body.appendChild(draggedElement);
-            const touch = e.touches[0];
-            positionDraggedElement(touch.clientX, touch.clientY);
-        }
+        draggedElement = blockElement.cloneNode(true);
+        draggedElement.style.position = 'absolute';
+        draggedElement.style.zIndex = '1000';
+        draggedElement.style.pointerEvents = 'none';
+        document.body.appendChild(draggedElement);
+
+        const isTouchEvent = e.type === 'touchstart';
+        if (isTouchEvent) e.preventDefault();
+        const touch = isTouchEvent ? e.touches[0] : null;
+        const clientX = isTouchEvent ? touch.clientX : e.clientX;
+        const clientY = isTouchEvent ? touch.clientY : e.clientY;
+        
+        positionDraggedElement(clientX, clientY);
+        
         blockElement.style.opacity = '0.4';
     }
 
     function handleDragMove(e) {
         if (!draggedBlockData) return;
+        
         const isTouchEvent = e.type === 'touchmove';
         if (isTouchEvent) e.preventDefault();
+
+        const clientX = isTouchEvent ? e.touches[0].clientX : e.clientX;
+        const clientY = isTouchEvent ? e.touches[0].clientY : e.clientY;
         
-        const x = isTouchEvent ? e.touches[0].clientX : e.clientX;
-        const y = isTouchEvent ? e.touches[0].clientY : e.clientY;
+        positionDraggedElement(clientX, clientY);
         
-        if (draggedElement) positionDraggedElement(x, y);
+        const targetCell = getCellFromCoordinates(clientX, clientY);
         
-        const targetCell = getCellFromCoordinates(x, y);
         if (targetCell && targetCell !== lastTargetCell) {
             lastTargetCell = targetCell;
             const row = parseInt(targetCell.dataset.row);
@@ -652,6 +588,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function handleDragEnd(e) {
+        if (!draggedBlockData) return;
+
+        const isTouchEvent = e.type === 'touchend';
+        if (isTouchEvent) e.preventDefault();
+
+        let dropSuccessful = false;
+        
+        if (lastTargetCell) {
+            const row = parseInt(lastTargetCell.dataset.row);
+            const col = parseInt(lastTargetCell.dataset.col);
+            if (isValidPlacement(draggedBlockData, row, col)) {
+                placeBlock(draggedBlockData, row, col);
+                
+                currentBlocks = currentBlocks.filter(b => b.instanceId !== draggedBlockData.instanceId);
+                const originalBlockEl = blockContainer.querySelector(`[data-block-id="${draggedBlockData.instanceId}"]`);
+                if (originalBlockEl) originalBlockEl.remove();
+
+                checkForLineClears();
+
+                if (currentBlocks.length === 0) {
+                    generateNewBlocks();
+                    renderBlocks();
+                }
+
+                if (isGameOver()) {
+                    showGameOver();
+                }
+                dropSuccessful = true;
+            }
+        }
+        
+        clearPreview();
+        lastTargetCell = null;
+        if (draggedElement) {
+            draggedElement.remove();
+            draggedElement = null;
+        }
+
+        if (!dropSuccessful) {
+            const originalBlock = blockContainer.querySelector(`[data-block-id="${draggedBlockData.instanceId}"]`);
+            if (originalBlock) {
+                originalBlock.style.opacity = '1';
+            }
+        }
+        
+        draggedBlockData = null;
+    }
+    
     function positionDraggedElement(x, y) {
         if (draggedElement) {
             draggedElement.style.left = `${x - draggedElement.offsetWidth / 2}px`;
@@ -671,7 +656,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     restartButton.addEventListener('click', () => init(currentLevel));
-    modalRestartButton.addEventListener('click', () => init(currentLevel));
+    modalRestartButton.addEventListener('click', () => {
+        init(gameMode === 'levels' ? currentLevel : 1);
+    });
 
     nextLevelButton.addEventListener('click', () => {
         init(currentLevel + 1);

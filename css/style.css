@@ -23,7 +23,6 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    /* Removed overflow: hidden to fix the issue */
     -webkit-user-select: none;
     -ms-user-select: none;
     user-select: none;
@@ -35,24 +34,15 @@ body {
     display: none !important;
 }
 
-#main-menu.active {
+#main-menu {
     display: flex;
-}
-
-#game-container.active {
-    display: flex;
-}
-
-
-.menu-screen {
-    display: none; /* Hidden by default */
     flex-direction: column;
     align-items: center;
     gap: 20px;
     padding: 20px;
 }
 
-.menu-screen h1 {
+#main-menu h1 {
     font-size: 3rem;
     font-weight: 700;
     text-shadow: 0 0 10px var(--text-color);
@@ -78,7 +68,7 @@ body {
 }
 
 #game-container {
-    display: none; /* Hidden by default */
+    display: flex;
     flex-direction: column;
     align-items: center;
     width: 100%;
@@ -120,13 +110,14 @@ body {
     cursor: pointer;
     padding: 8px;
 }
+
 .game-button svg {
     transition: transform 0.3s ease;
 }
+
 .game-button:hover svg {
     transform: rotate(90deg);
 }
-
 
 #game-board {
     display: grid;
@@ -153,7 +144,6 @@ body {
     box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
-
 
 .game-footer {
     width: 100%;
@@ -219,10 +209,6 @@ body {
     font-size: 1.2rem;
     color: var(--score-text);
     margin-bottom: 25px;
-}
-
-.dragging {
-    opacity: 0.5;
 }
 
 #stone-goals-container {
@@ -317,36 +303,43 @@ body {
     height: 20px;
 }
 
-/* === REVISED MOBILE RESPONSIVE STYLES === */
+/* === NEW & IMPROVED MOBILE RESPONSIVE STYLES === */
 @media (max-width: 480px) {
+    body {
+        overflow: hidden;
+    }
 
-    #game-container.active {
-        /* This new structure ensures all elements fit vertically */
+    #game-container {
         height: 100vh;
         height: -webkit-fill-available;
-        padding: 5px;
+        display: flex;
+        flex-direction: column;
         justify-content: space-between;
+        padding: 5px;
     }
 
     .game-header {
-        /* Allow the header to shrink if needed */
         flex-shrink: 0;
     }
 
     #game-board {
-        /* The board can shrink, but not grow too large */
         flex-shrink: 1;
-        min-height: 0; /* Important for flexbox shrinking */
+        min-height: 0;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1 / 1;
+        max-width: 95vw;
+        max-height: 95vw;
+        margin: 0 auto;
     }
 
     .game-footer {
-        /* The footer will not shrink, ensuring blocks are always visible */
         flex-shrink: 0;
         width: 100%;
         padding-bottom: 5px;
     }
 
-    .menu-screen h1 {
+    #main-menu h1 {
         font-size: 2.5rem;
     }
 
@@ -362,12 +355,6 @@ body {
     
     .score-label, .level-label {
         font-size: 0.7rem;
-    }
-
-    #stone-goals-container {
-        order: 3;
-        width: 100%;
-        margin-top: 5px;
     }
     
     .block-cell {
