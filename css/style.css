@@ -306,9 +306,8 @@ body {
 /* === NEW & IMPROVED MOBILE RESPONSIVE STYLES === */
 @media (max-width: 480px) {
     body {
-        overflow: hidden;
+        overflow-y: auto; /* Allow vertical scrolling on small screens */
     }
-
     #game-container {
         height: 100vh;
         height: -webkit-fill-available;
