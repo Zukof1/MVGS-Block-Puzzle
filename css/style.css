@@ -380,4 +380,19 @@ body {
     .modal-content h2 {
         font-size: 2rem;
     }
+    
+    /* --- FINAL FOOTER SPACING FIX --- */
+    #block-container {
+        min-height: auto; /* Remove minimum height on mobile */
+        padding: 5px;
+    }
+
+    #power-ups-container {
+        padding: 8px; /* Make power-up section more compact */
+        margin-bottom: 8px;
+    }
+
+    .next-blocks-label {
+        margin-bottom: 5px; /* Reduce space above next blocks */
+    }
 }
