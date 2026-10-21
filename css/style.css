@@ -1,3 +1,25 @@
+@font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../assets/fonts/poppins-400.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../assets/fonts/poppins-600.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../assets/fonts/poppins-700.woff2') format('woff2');
+}
+
 :root {
     --bg-color: #1a1a2e;
     --grid-bg: #16213e;
@@ -7,6 +29,7 @@
     --button-bg: #e94560;
     --button-text: #ffffff;
     --modal-bg: rgba(22, 33, 62, 0.95);
+    --accent-gold: #ffd700;
 }
 
 * {
@@ -61,11 +84,30 @@ body {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     min-width: 220px;
     text-align: center;
+    font-family: inherit;
 }
 
 .menu-button:hover {
     transform: translateY(-3px);
     box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+}
+
+.menu-button-secondary {
+    background-color: #3a506b;
+}
+
+.menu-button-secondary:hover {
+    box-shadow: 0 4px 15px rgba(58, 80, 107, 0.5);
+}
+
+.menu-button:focus-visible,
+.game-button:focus-visible,
+.power-up-button:focus-visible,
+.level-button:focus-visible,
+.block-preview:focus-visible,
+#game-board:focus-visible {
+    outline: 3px solid var(--accent-gold);
+    outline-offset: 2px;
 }
 
 #game-container {
@@ -104,12 +146,19 @@ body {
     color: var(--score-text);
 }
 
+.header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
 .game-button {
     background: none;
     border: none;
     color: var(--text-color);
     cursor: pointer;
     padding: 8px;
+    font-size: 1.1rem;
 }
 
 .game-button svg {
@@ -118,6 +167,10 @@ body {
 
 .game-button:hover svg {
     transform: rotate(90deg);
+}
+
+#home-button:hover svg {
+    transform: scale(1.15);
 }
 
 #game-board {
@@ -141,9 +194,23 @@ body {
     border-radius: 2px;
 }
 
+.grid-cell.cursor-cell {
+    box-shadow: inset 0 0 0 2px var(--accent-gold);
+}
+
 .locked-cell {
     box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@keyframes clear-pop {
+    0% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.25); filter: brightness(2.2); }
+    100% { transform: scale(0.4); opacity: 0; }
+}
+
+.grid-cell.clearing {
+    animation: clear-pop 0.22s ease-in forwards;
 }
 
 .game-footer {
@@ -156,6 +223,12 @@ body {
     font-weight: 600;
 }
 
+.hint-label {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: #6a7b8c;
+}
+
 #block-container {
     display: flex;
     justify-content: space-around;
@@ -165,11 +238,20 @@ body {
     background-color: var(--grid-bg);
     padding: 10px;
     border-radius: 12px;
+    touch-action: none;
 }
 
 .block-preview {
     display: grid;
     cursor: grab;
+    border-radius: 6px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.block-preview.selected {
+    outline: 3px solid var(--accent-gold);
+    transform: scale(1.08);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
 }
 
 .block-cell {
@@ -177,6 +259,34 @@ body {
     height: 20px;
     border-radius: 3px;
     box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+}
+
+/* --- Floating score popups --- */
+.float-text {
+    position: fixed;
+    transform: translate(-50%, -100%);
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--score-text);
+    text-shadow: 0 0 6px rgba(0,0,0,0.8);
+    pointer-events: none;
+    z-index: 2000;
+    animation: float-up 0.9s ease-out forwards;
+}
+
+.float-text.float-combo {
+    color: var(--accent-gold);
+    font-size: 1.7rem;
+}
+
+.float-text.float-bad {
+    color: #ff6b6b;
+}
+
+@keyframes float-up {
+    0% { opacity: 0; margin-top: 0; }
+    15% { opacity: 1; }
+    100% { opacity: 0; margin-top: -50px; }
 }
 
 .modal-overlay {
@@ -209,7 +319,39 @@ body {
 .modal-content p {
     font-size: 1.2rem;
     color: var(--score-text);
-    margin-bottom: 25px;
+    margin-bottom: 15px;
+}
+
+.modal-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.modal-buttons .menu-button {
+    margin-bottom: 0;
+}
+
+#best-score-row.new-best {
+    color: var(--accent-gold);
+    font-weight: 700;
+}
+
+.modal-stars {
+    font-size: 2.2rem;
+    margin-bottom: 8px;
+    letter-spacing: 6px;
+}
+
+.modal-stars .star {
+    color: #2a3b4c;
+}
+
+.modal-stars .star.earned {
+    color: var(--accent-gold);
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
 }
 
 #stone-goals-container {
@@ -226,6 +368,13 @@ body {
     color: var(--score-text);
     font-size: 0.9rem;
     font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 8px;
+}
+
+.stone-goal.goal-met {
+    background-color: rgba(46, 204, 113, 0.25);
+    color: #2ecc71;
 }
 
 .stone-goal-icon-img {
@@ -240,7 +389,7 @@ body {
     background-color: rgba(0,0,0,0.2);
     padding: 5px 10px;
     border-radius: 20px;
-    color: #ffd700;
+    color: var(--accent-gold);
     font-weight: 600;
 }
 
@@ -267,6 +416,13 @@ body {
     margin-bottom: 10px;
 }
 
+.power-up-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
 .power-up-button {
     background-color: #3a506b;
     color: var(--button-text);
@@ -276,12 +432,12 @@ body {
     font-weight: 600;
     border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
-    margin: 0 5px;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    font-family: inherit;
 }
 
 .power-up-button:hover:not(:disabled) {
@@ -294,12 +450,18 @@ body {
     cursor: not-allowed;
 }
 
-.power-up-cost {
-    font-size: 0.8rem;
-    color: #ffd700;
+.power-up-button.active {
+    background-color: var(--button-bg);
+    box-shadow: 0 0 12px rgba(233, 69, 96, 0.6);
 }
 
-.power-up-button img {
+.power-up-cost {
+    font-size: 0.8rem;
+    color: var(--accent-gold);
+}
+
+.power-up-button img,
+.power-up-button svg {
     width: 20px;
     height: 20px;
 }
@@ -310,7 +472,7 @@ body {
         overflow-y: auto; /* Allow vertical scrolling on small screens */
     }
     #game-container {
-        height: 100%; /* Changed from 100vh to allow content to define height */
+        height: 100%;
         min-height: 100vh;
         display: flex;
         flex-direction: column;
@@ -320,6 +482,9 @@ body {
 
     .game-header {
         flex-shrink: 0;
+        padding: 8px 10px;
+        flex-wrap: wrap;
+        gap: 4px;
     }
 
     #game-board {
@@ -348,23 +513,23 @@ body {
         font-size: 1rem;
         min-width: 200px;
     }
-    
+
     .score-value, .level-value {
         font-size: 1.4rem;
     }
-    
+
     .score-label, .level-label {
         font-size: 0.7rem;
     }
-    
+
     .block-cell {
         width: 16px;
         height: 16px;
     }
 
     #power-ups-container {
-        padding: 10px;
-        margin-bottom: 10px;
+        padding: 8px;
+        margin-bottom: 8px;
     }
 
     .power-up-button {
@@ -380,19 +545,18 @@ body {
     .modal-content h2 {
         font-size: 2rem;
     }
-    
+
     #block-container {
         min-height: auto;
         padding: 5px;
     }
 
-    #power-ups-container {
-        padding: 8px;
-        margin-bottom: 8px;
-    }
-
     .next-blocks-label {
         margin-bottom: 5px;
+    }
+
+    .hint-label {
+        display: none; /* hint is not needed on touch layouts */
     }
 }
 
@@ -438,13 +602,26 @@ body {
     cursor: pointer;
     transition: transform 0.2s ease, background-color 0.2s ease;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    font-family: inherit;
 }
 
 .level-button:hover:not(:disabled) {
     transform: scale(1.05);
     background-color: #4a658a;
+}
+
+.level-button.completed {
+    border-color: var(--accent-gold);
+}
+
+.level-stars {
+    font-size: 0.7rem;
+    color: var(--accent-gold);
+    line-height: 1;
+    margin-top: 2px;
 }
 
 .level-button.locked {

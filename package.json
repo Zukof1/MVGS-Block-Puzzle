@@ -1,0 +1,14 @@
+{
+    "name": "mvgs-block-puzzle",
+    "version": "2.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Block Puzzle — Levels, Endless, and Daily Challenge modes. Static site, no build step.",
+    "scripts": {
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "devDependencies": {
+        "vitest": "^3.0.0"
+    }
+}
